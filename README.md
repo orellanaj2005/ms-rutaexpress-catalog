@@ -237,6 +237,27 @@ arquitectura de microservicios, y además evita este choque de versiones de Flyw
 usuario Oracle por defecto de catalog de `rutaexpress` a **`catalog`** (`ORACLE_USER`/`ORACLE_PASSWORD`
 en `application.yaml`), y se documentó la creación de ese usuario en `ms-rutaexpress-db/initdb/`.
 
+### 2026-09-12 - Dos bugs encontrados y corregidos probando contra Oracle real (Jassack)
+Al levantar el servicio contra la base de Docker y probar los endpoints con un JWT real de
+Postman aparecieron dos problemas que los tests con H2 no detectaban (H2 es más permisivo que
+Oracle real con estos dos tipos):
+
+1. **Mapeo de `active` (boolean) incorrecto**: el arranque fallaba con `SchemaManagementException:
+   wrong column type encountered in column [active]... found [number], but expecting [boolean]`.
+   Oracle 23ai tiene un tipo `BOOLEAN` nativo, y Hibernate 7 mapea `boolean` de Java a ese tipo por
+   defecto en ese dialecto, pero la migración creó la columna como `NUMBER(1)` (compatible con
+   versiones más viejas de Oracle). Se agregó `@Convert(converter = NumericBooleanConverter.class)`
+   al campo `active` para que Hibernate lo siga tratando como 0/1 en vez de esperar el tipo nativo.
+2. **ORA-18716 al leer servicios**: `GET /api/catalog/services` devolvía 500 con `ORA-18716: {0}
+   no está en ninguna zona horaria`. Es un problema de compatibilidad entre `ojdbc11` y el tipo
+   JDBC que Hibernate 7 usa por defecto para campos `Instant` (llama a
+   `ResultSet.getObject(col, OffsetDateTime.class)`, que el driver de Oracle no soporta bien contra
+   una columna `TIMESTAMP` plana). No se resolvió cambiando la zona horaria de la JVM ni con la
+   propiedad `oracle.jdbc.timezoneAsRegion` - el fix fue forzar a Hibernate a usar el tipo JDBC
+   `TIMESTAMP` clásico (`getTimestamp()`) para `createdAt`/`updatedAt` vía
+   `@JdbcTypeCode(SqlTypes.TIMESTAMP)`, sin cambiar el tipo Java `Instant` que ya usa el resto del
+   código. Mismo bug y mismo fix en `ms-rutaexpress-shipments`.
+
 ## Resultado del build/tests
 
 `./mvnw test` — **BUILD SUCCESS**, 7/7 tests pasando (smoke test de carga de contexto, test

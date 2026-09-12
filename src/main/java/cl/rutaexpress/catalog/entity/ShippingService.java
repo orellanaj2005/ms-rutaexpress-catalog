@@ -1,6 +1,7 @@
 package cl.rutaexpress.catalog.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,6 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.NumericBooleanConverter;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,12 +43,26 @@ public class ShippingService {
     @Column(name = "CAPACITY", nullable = false)
     private Integer capacity;
 
+    // Oracle 23ai has a native BOOLEAN type, and Hibernate 7 maps Java boolean
+    // to it by default on that dialect. The migration created ACTIVE as
+    // NUMBER(1) (portable across older Oracle versions too), so this
+    // converter tells Hibernate to keep treating it as 0/1 instead of
+    // expecting the native BOOLEAN column type.
+    @Convert(converter = NumericBooleanConverter.class)
     @Column(name = "ACTIVE", nullable = false)
     private boolean active;
 
+    // ojdbc11 throws ORA-18716 when Hibernate 7's default JDBC type for
+    // Instant (TimestampUtcAsOffsetDateTimeJdbcType) calls
+    // getObject(col, OffsetDateTime.class) against a plain TIMESTAMP column.
+    // Forcing the classic TIMESTAMP JDBC type keeps Instant as the Java type
+    // but reads/writes via getTimestamp()/setTimestamp() instead, avoiding
+    // the buggy driver code path.
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "CREATED_AT", nullable = false)
     private Instant createdAt;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "UPDATED_AT", nullable = false)
     private Instant updatedAt;
 
