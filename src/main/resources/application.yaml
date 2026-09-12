@@ -5,8 +5,8 @@ spring:
     import: optional:file:.env[.properties]
   datasource:
     url: jdbc:oracle:thin:@//${ORACLE_HOST:localhost}:${ORACLE_PORT:1521}/${ORACLE_SERVICE:XEPDB1}
-    username: ${ORACLE_USER:rutaexpress}
-    password: ${ORACLE_PASSWORD:rutaexpress}
+    username: ${ORACLE_USER:catalog}
+    password: ${ORACLE_PASSWORD:catalog}
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
     hibernate:
