@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: catalog
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:oracle:thin:@//${ORACLE_HOST:localhost}:${ORACLE_PORT:1521}/${ORACLE_SERVICE:XEPDB1}
+    username: ${ORACLE_USER:rutaexpress}
+    password: ${ORACLE_PASSWORD:rutaexpress}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8082
+
+security:
+  jwt:
+    issuer-uri: https://login.microsoftonline.com/${TENANT_ID}/v2.0
+    audience: ${API_CLIENT_ID}
+
+internal:
+  api-key: ${INTERNAL_API_KEY:dev-internal-key}
